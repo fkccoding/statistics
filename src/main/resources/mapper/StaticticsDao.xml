@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.moxi.statistics.dao.StatisticsDao">
+
+
+    <select id="getRobotStatistics" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result where call_type in(3,6) AND (call_status='normalConnection' OR call_status='error')
+        AND call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND company_id=#{companyId} AND role_id=#{roleId}
+    </select>
+
+    <select id="getAgentStatistics" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT user_name, COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result WHERE call_type in(4,7)
+        AND call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND company_id=#{companyId} AND role_id=#{roleId}
+        GROUP BY user_name ORDER BY user_name
+    </select>
+
+    <select id="getAllStatistics" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT
+        (SELECT COUNT(*) FROM outbound_call_result WHERE call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND call_type in(3,4,6,7) AND company_id=#{companyId} AND role_id=#{roleId} ) AS call_number,
+        COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result
+        WHERE call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND (call_status='normalConnection' OR call_status='error')
+        AND company_id=#{companyId} AND role_id=#{roleId}
+        AND call_type in(3,4,6,7)
+    </select>
+</mapper>

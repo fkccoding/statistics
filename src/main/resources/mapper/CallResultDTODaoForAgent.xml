@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.moxi.statistics.dao.CallResultDTODaoForAgent">
+
+    <!-- 可根据自己的需求，是否要使用 -->
+    <resultMap type="com.moxi.statistics.entity.CallResultDTOForAgent" id="CallResultMap">
+        <result property="callCaseId" column="call_case_id"/>
+        <result property="name" column="name"/>
+        <result property="casePrice" column="case_price"/>
+        <result property="callStartTime" column="call_start_time"/>
+        <result property="answerTime" column="answer_time"/>
+        <result property="callEndTime" column="call_end_time"/>
+        <result property="callDuration" column="call_duration"/>
+        <result property="callNumber" column="call_number"/>
+        <result property="voicePath" column="voice_path"/>
+        <result property="outboundType" column="outbound_type"/>
+
+    </resultMap>
+
+    <select id="selectAgentList" resultMap="CallResultMap">
+        SELECT call_case_id, `name`, case_price, call_start_time, answer_time, call_end_time, call_duration, call_number, voice_path, outbound_type, user_name
+        FROM outbound_call_result WHERE call_type in(4,7) AND call_status ='normalConnection'
+        AND company_id=#{companyId} AND role_id=#{roleId}
+        AND call_end_time &gt;=#{start} AND call_end_time &lt;=#{end} ORDER BY user_name, call_end_time
+    </select>
+
+</mapper>

@@ -25,4 +25,6 @@ public interface CallResultDTODaoForAgent extends BaseMapper<CallResultDTOForAge
      */
     List<CallResultDTOForAgent> selectAgentList(@Param("companyId") Integer companyId, @Param("roleId") Integer roleId,
                                                 @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    List<CallResultDTOForAgent> selectAgentListForXiaoMi(Integer companyId, LocalDateTime start, LocalDateTime end);
 }

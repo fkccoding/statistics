@@ -25,4 +25,10 @@ public interface StatisticsDao extends BaseMapper<StatisticsEntity> {
 
     StatisticsEntity getAllStatistics(@Param("companyId") Integer companyId, @Param("roleId") Integer roleId,
                                       @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    List<StatisticsEntity> getAgentStatisticsForXiaoMi(Integer companyId, LocalDateTime start, LocalDateTime end);
+
+    StatisticsEntity getRobotStatisticsForXiaoMi(Integer companyId, LocalDateTime start, LocalDateTime end);
+
+    StatisticsEntity getAllStatisticsForXiaoMi(Integer companyId, LocalDateTime start, LocalDateTime end);
 }

@@ -30,4 +30,28 @@
         AND company_id=#{companyId} AND role_id=#{roleId}
         AND call_type in(3,4,6,7)
     </select>
+    <select id="getAgentStatisticsForXiaoMi" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT user_name, COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result WHERE call_type in(4,7)
+        AND call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND company_id=#{companyId}
+        GROUP BY user_name ORDER BY user_name
+    </select>
+    <select id="getRobotStatisticsForXiaoMi" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result where call_type in(3,6) AND (call_status='normalConnection' OR call_status='error')
+        AND call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND company_id=#{companyId}
+    </select>
+    <select id="getAllStatisticsForXiaoMi" resultType="com.moxi.statistics.entity.StatisticsEntity">
+        SELECT
+        (SELECT COUNT(*) FROM outbound_call_result WHERE call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND call_type in(3,4,6,7) AND company_id=#{companyId} ) AS call_number,
+        COUNT(*) AS connect_number, SUM(TIMESTAMPDIFF(SECOND, answer_time, call_end_time)) AS call_duration
+        FROM outbound_call_result
+        WHERE call_start_time &gt;=#{start} AND call_start_time &lt;=#{end}
+        AND (call_status='normalConnection' OR call_status='error')
+        AND company_id=#{companyId}
+        AND call_type in(3,4,6,7)
+    </select>
 </mapper>

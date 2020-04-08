@@ -24,7 +24,7 @@
     <select id="selectRobotListForXiaoMi" resultType="com.moxi.statistics.entity.CallResultDTO">
         SELECT call_case_id, `name`, case_price, call_start_time, answer_time, call_end_time, call_number, voice_path, outbound_type
         FROM outbound_call_result WHERE call_type in(3,6) AND call_status ='normalConnection'
-        AND company_id=#{companyId}
+        AND company_id=#{companyId} AND role_id not in(50, 60, 70, 80)
         AND call_end_time &gt;=#{start} AND call_end_time &lt;=#{end} ORDER BY call_end_time
     </select>
 

@@ -23,6 +23,7 @@ import java.net.URLEncoder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.*;
 
 
 /**
@@ -43,10 +44,19 @@ public class ExcelController {
     private WriteSheet b = EasyExcel.writerSheet(1, "B组").build();
     private WriteSheet c = EasyExcel.writerSheet(2, "C组").build();
     private WriteSheet d = EasyExcel.writerSheet(3, "D组").build();
-    private WriteSheet e = EasyExcel.writerSheet(0, "小米强绑定").build();
+    private WriteSheet e = EasyExcel.writerSheet(4, "强绑定").build();
+
+    static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+            4,
+            10,
+            60,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(200),
+            new ThreadPoolExecutor.AbortPolicy()
+    );
 
     @GetMapping("/getAI")
-    public void downloadForAi(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException {
+    public void downloadForAi(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDateTime.now().toLocalDate();
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "robot", response);
@@ -56,7 +66,7 @@ public class ExcelController {
     }
 
     @GetMapping("/getAgent")
-    public void downloadForAgent(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException {
+    public void downloadForAgent(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDateTime.now().toLocalDate();
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "agent", response);
@@ -66,7 +76,7 @@ public class ExcelController {
     }
 
     @GetMapping("/getStatistics")
-    public void downloadStatistics(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException {
+    public void downloadStatistics(@RequestParam(defaultValue = "29") Integer companyId, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDateTime.now().toLocalDate();
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "statistics", response);
@@ -77,7 +87,7 @@ public class ExcelController {
 
     @GetMapping("/getAI/{year}/{month}/{day}")
     public void downloadForAi(@RequestParam(defaultValue = "29") Integer companyId, @PathVariable String year,
-                         @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException {
+                         @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDate.parse(year + "-" + month + "-" + day);
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "robot", response);
@@ -88,7 +98,7 @@ public class ExcelController {
 
     @GetMapping("/getAgent/{year}/{month}/{day}")
     public void downloadForAgent(@RequestParam(defaultValue = "29") Integer companyId, @PathVariable String year,
-                          @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException {
+                          @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDate.parse(year + "-" + month + "-" + day);
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "agent", response);
@@ -100,7 +110,7 @@ public class ExcelController {
 
     @GetMapping("/getStatistics/{year}/{month}/{day}")
     public void downloadStatistics(@RequestParam(defaultValue = "29") Integer companyId, @PathVariable String year,
-                          @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException {
+                          @PathVariable String month, @PathVariable String day, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         LocalDate localDate = LocalDate.parse(year + "-" + month + "-" + day);
         if (companyId == 87) {
             exportToExcelForXiaoMi(companyId, localDate, "statistics", response);
@@ -116,50 +126,56 @@ public class ExcelController {
         response.setCharacterEncoding("utf-8");
     }
 
-    private void exportToExcel(Integer companyId, LocalDate localDate, String type, HttpServletResponse response) throws IOException {
+    private void exportToExcel(Integer companyId, LocalDate localDate, String type, HttpServletResponse response) throws IOException, ExecutionException, InterruptedException {
         switch (type) {
             case "robot":
                 setResponse(response, localDate, "机器人呼叫");
-                List<CallResultDTO> callResultList50 = excelService.getRobotCallResultList(companyId, 50, localDate);
-                List<CallResultDTO> callResultList60 = excelService.getRobotCallResultList(companyId, 60, localDate);
-                List<CallResultDTO> callResultList70 = excelService.getRobotCallResultList(companyId, 70, localDate);
-               List<CallResultDTO> callResultList80 = excelService.getRobotCallResultList(companyId, 80, localDate);
+                Future<List<CallResultDTO>> future50 = threadPoolExecutor.submit(() -> excelService.getRobotCallResultList(companyId, 50, localDate));
+                Future<List<CallResultDTO>> future60 = threadPoolExecutor.submit(() -> excelService.getRobotCallResultList(companyId, 60, localDate));
+                Future<List<CallResultDTO>> future70 = threadPoolExecutor.submit(() -> excelService.getRobotCallResultList(companyId, 70, localDate));
+                Future<List<CallResultDTO>> future80 = threadPoolExecutor.submit(() -> excelService.getRobotCallResultList(companyId, 80, localDate));
+                Future<List<CallResultDTO>> futureOne = threadPoolExecutor.submit(() -> excelService.getRobotCallResultListForXiaoMi(companyId, localDate));
                 long begin = System.currentTimeMillis();
                 ExcelWriter excelWriter = EasyExcel.write(response.getOutputStream(), CallResultDTO.class).build();
-                excelWriter.write(callResultList50, a)
-                        .write(callResultList60, b)
-                        .write(callResultList70, c)
-                       .write(callResultList80, d)
+                excelWriter.write(future50.get(), a)
+                        .write(future60.get(), b)
+                        .write(future70.get(), c)
+                        .write(future80.get(), d)
+                        .write(futureOne.get(), e)
                         .finish();
                 logger.info("转换成Excel花费时间：{}ms", System.currentTimeMillis() - begin);
                 break;
             case "agent":
                 setResponse(response, localDate, "人工呼叫");
-                List<CallResultDTOForAgent> agentsCallResult50 = excelService.getAgentCallResultList(companyId, 50, localDate);
-                List<CallResultDTOForAgent> agentsCallResult60 = excelService.getAgentCallResultList(companyId, 60, localDate);
-                List<CallResultDTOForAgent> agentsCallResult70 = excelService.getAgentCallResultList(companyId, 70, localDate);
-               List<CallResultDTOForAgent> agentsCallResult80 = excelService.getAgentCallResultList(companyId, 80, localDate);
+                Future<List<CallResultDTOForAgent>> agentsCallResult50 = threadPoolExecutor.submit(() -> excelService.getAgentCallResultList(companyId, 50, localDate));
+                Future<List<CallResultDTOForAgent>> agentsCallResult60 = threadPoolExecutor.submit(() -> excelService.getAgentCallResultList(companyId, 60, localDate));
+                Future<List<CallResultDTOForAgent>> agentsCallResult70 = threadPoolExecutor.submit(() -> excelService.getAgentCallResultList(companyId, 70, localDate));
+                Future<List<CallResultDTOForAgent>> agentsCallResult80 = threadPoolExecutor.submit(() -> excelService.getAgentCallResultList(companyId, 80, localDate));
+                Future<List<CallResultDTOForAgent>> agentsCallResultOne = threadPoolExecutor.submit(() -> excelService.getAgentCallResultListForXiaoMi(companyId, localDate));
                 long begin1 = System.currentTimeMillis();
                 ExcelWriter excelWriter1 = EasyExcel.write(response.getOutputStream(), CallResultDTOForAgent.class).build();
-                excelWriter1.write(agentsCallResult50, a)
-                        .write(agentsCallResult60, b)
-                        .write(agentsCallResult70, c)
-                       .write(agentsCallResult80, d)
+                excelWriter1.write(agentsCallResult50.get(), a)
+                        .write(agentsCallResult60.get(), b)
+                        .write(agentsCallResult70.get(), c)
+                        .write(agentsCallResult80.get(), d)
+                        .write(agentsCallResultOne.get(), e)
                         .finish();
                 logger.info("转换成Excel花费时间：{}ms", System.currentTimeMillis() - begin1);
                 break;
             case "statistics":
                 setResponse(response, localDate, "呼叫统计");
-                List<StatisticsEntity> statistics50 = excelService.getStatistics(companyId, 50, localDate);
-                List<StatisticsEntity> statistics60 = excelService.getStatistics(companyId, 60, localDate);
-                List<StatisticsEntity> statistics70 = excelService.getStatistics(companyId, 70, localDate);
-               List<StatisticsEntity> statistics80 = excelService.getStatistics(companyId, 80, localDate);
+                Future<List<StatisticsEntity>> statistics50 = threadPoolExecutor.submit(() -> excelService.getStatistics(companyId, 50, localDate));
+                Future<List<StatisticsEntity>> statistics60 = threadPoolExecutor.submit(() -> excelService.getStatistics(companyId, 60, localDate));
+                Future<List<StatisticsEntity>> statistics70 = threadPoolExecutor.submit(() -> excelService.getStatistics(companyId, 70, localDate));
+                Future<List<StatisticsEntity>> statistics80 = threadPoolExecutor.submit(() -> excelService.getStatistics(companyId, 80, localDate));
+                Future<List<StatisticsEntity>> statisticsOne = threadPoolExecutor.submit(() -> excelService.getStatisticsForXiaoMi(companyId, localDate));
                 long begin2 = System.currentTimeMillis();
                 ExcelWriter excelWriter2 = EasyExcel.write(response.getOutputStream(), StatisticsEntity.class).build();
-                excelWriter2.write(statistics50, a)
-                        .write(statistics60, b)
-                        .write(statistics70, c)
-                       .write(statistics80, d)
+                excelWriter2.write(statistics50.get(), a)
+                        .write(statistics60.get(), b)
+                        .write(statistics70.get(), c)
+                        .write(statistics80.get(), d)
+                        .write(statisticsOne.get(), e)
                         .finish();
                 logger.info("转换成Excel花费时间：{}ms", System.currentTimeMillis() - begin2);
                 break;

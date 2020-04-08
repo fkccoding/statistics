@@ -8,6 +8,6 @@
         <result property="name" column="company_name"/>
     </resultMap>
     <select id="getCompanyList" resultMap="CompanyMap">
-        select company_id, company_name from p_precall_company_role a, p_company b where a.company_id=b.id and a.company_id != 20 GROUP BY company_id
+        select company_id, company_name from p_precall_company_role a, p_company b where a.company_id=b.id and a.company_id != 20 and b.delete=0 GROUP BY company_id
     </select>
 </mapper>
